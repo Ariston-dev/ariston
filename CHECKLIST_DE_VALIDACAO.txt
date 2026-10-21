@@ -1,0 +1,23 @@
+LASER TOOLS FREE v5 - CHECKLIST DE ACEITACAO NO WINDOWS 11
+
+[ ] VS 2022 / MSBuild com .NET Framework 4.8 Developer Pack presente
+[ ] Python 3.11/3.12 x64 presente e bibliotecas instaladas
+[ ] INSTALAR_TUDO.bat termina sem erros, sem simulacao de compilacao
+[ ] LaserToolsFree.Docker.dll existe em Programs64\Addons\LaserToolsFree
+[ ] CorelDRAW 2024 inicia sem travar e reconhece o painel em Window > Dockers
+[ ] Atualizar selecao retorna count, largura e altura corretos em mm
+[ ] Backup de CDR criado ANTES das transformacoes nativas
+[ ] Grade 2x2 preserva os originais e espaçamentos esperados
+[ ] Redimensionar/rotacionar preserva curvas sem artefatos
+[ ] Exportar selecao gera DXF com unidades dimensionais coerentes
+[ ] Remover duplicadas: nova camada e sem apagar objetos antigos
+[ ] Offset: importa somente contornos novos, nao duplica originais
+[ ] Nesting: retas e circulos, respeita margem e espacamento
+[ ] Nesting: recusa SPLINE, bulge, curvas de Bezier sem conversao
+[ ] Relatorio: quantidades/custos conferidos manualmente
+[ ] DXF do RDWorks confere escala (teste retangulo 20x10 mm)
+[ ] RDWorks simula caminho correto, camadas e ordem de corte
+[ ] Simulacao da maquina concluida SEM disparar o laser
+[ ] Remover complemento nao altera CDR nem backups
+
+Os itens acima somente podem ser marcados testando no computador de destino.

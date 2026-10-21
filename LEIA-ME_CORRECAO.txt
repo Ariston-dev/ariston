@@ -1,0 +1,22 @@
+CORRECAO v5.1.1 — ERRO UnicodeDecodeError no GitHub Actions
+
+A pasta contida neste ZIP tem a mesma estrutura que seu repositório Ariston.
+
+1. Extraia este ZIP.
+2. No GitHub Desktop, Repository > Show in Explorer.
+3. Copie as pastas .github e CorelAddon do ZIP para a raiz do repositório,
+   confirmando a SUBSTITUICAO apenas dos arquivos com mesmo nome.
+4. GitHub Desktop: Changes > Summary: Corrigir leitura UTF-8 dos testes
+5. Commit to main; depois Push origin.
+6. GitHub > Acoes: observe a nova execucao.
+
+Arquivos alterados:
+- .github/workflows/compilar-plugin-windows.yml
+- CorelAddon/tests/test_v5_structure.py
+
+Motivo: os testes liam arquivos UTF-8 com codificacao padrao cp1252 no Windows.
+Agora, os testes leem explicitamente UTF-8, e o pytest usa modo UTF-8.
+
+Nao foi alterado o motor DXF nem o codigo de producao do plugin.
+O pacote ainda NAO prova que a DLL compila nem que o plugin abre no CorelDRAW.
+Se houver outro erro na nova execucao, consulte os logs do passo que falhou.

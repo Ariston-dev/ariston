@@ -14,15 +14,15 @@ def test_manifest_and_source_files():
 
 def test_xaml_handlers_have_implementations():
     xaml=ET.parse(ROOT/'DockerUI.xaml')
-    code=(ROOT/'DockerUI.xaml.cs').read_text()
+    code=(ROOT/'DockerUI.xaml.cs').read_text(encoding='utf-8')
     for el in xaml.iter():
         handler=el.attrib.get('Click')
         if handler: assert 'void '+handler+'(' in code,handler
 
 
 def test_dll_hosted_type_and_csproj():
-    app=(ROOT/'AppUI.xslt').read_text()
-    project=(ROOT/'LaserToolsFree.Docker.csproj').read_text()
+    app=(ROOT/'AppUI.xslt').read_text(encoding='utf-8')
+    project=(ROOT/'LaserToolsFree.Docker.csproj').read_text(encoding='utf-8')
     assert 'LaserToolsFree.Docker.dll,LaserToolsFree.Docker.DockerUI' in app
     assert 'EngineRunner.cs' in project
     assert 'System.Web.Extensions' in project
@@ -30,7 +30,7 @@ def test_dll_hosted_type_and_csproj():
 
 
 def test_corel_import_protects_original_objects():
-    service=(ROOT/'CorelService.cs').read_text()
+    service=(ROOT/'CorelService.cs').read_text(encoding='utf-8')
     assert 'SaveAsCopy' in service
     assert 'CreateLayer' in service
     assert 'layer.ImportEx' in service

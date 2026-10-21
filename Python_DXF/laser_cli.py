@@ -58,6 +58,12 @@ def build_parser():
 
 
 if __name__=='__main__':
+    # JSON contract: UTF-8 independent of the Windows ANSI codepage. The C#
+    # plugin and tests explicitly decode UTF-8, even with Portuguese accents.
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='strict')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='backslashreplace')
     try:
         args=build_parser().parse_args()
         answer=run(args)

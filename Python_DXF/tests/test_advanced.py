@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 import subprocess
 import sys
+import os
 
 import ezdxf
 import pytest
@@ -91,10 +92,25 @@ def test_rdworks_export_mm_and_rejects_unsupported(tmp_path):
     with pytest.raises(ValueError,match='TEXT'):rdworks_clean_export(src2)
 
 
+def run_cli_utf8(cli, *arguments):
+    """Windows has several legacy ANSI codepages; do not infer either side's encoding.
+
+    Both the subprocess and this reader use UTF-8 explicitly. -X utf8 is effective
+    even when the GitHub Actions worker is configured for cp1252.
+    """
+    env = dict(os.environ)
+    env.update(PYTHONUTF8='1', PYTHONIOENCODING='utf-8')
+    return subprocess.run(
+        [sys.executable, '-X', 'utf8', str(cli), *map(str, arguments)],
+        capture_output=True, text=True, encoding='utf-8', errors='strict',
+        env=env, timeout=45,
+    )
+
+
 def test_cli_process_and_json(tmp_path):
     src=make_dxf(tmp_path)
     cli=Path(__file__).resolve().parents[1]/'laser_cli.py'
-    run=subprocess.run([sys.executable,str(cli),'shape',str(src),'--width','100','--height','70'],capture_output=True,text=True)
+    run=run_cli_utf8(cli,'shape',src,'--width','100','--height','70')
     assert run.returncode==0,run.stderr
     data=json.loads(run.stdout)
     assert data['ok'] is True and Path(data['output']).is_file()
@@ -104,7 +120,7 @@ def test_cli_process_and_json(tmp_path):
 def test_cli_error_nonzero_no_output(tmp_path):
     src=tmp_path/'x.dxf';d=ezdxf.new('R2000');d.header['$INSUNITS']=4;d.modelspace().add_line((0,0),(1,1));d.saveas(src)
     cli=Path(__file__).resolve().parents[1]/'laser_cli.py'
-    run=subprocess.run([sys.executable,str(cli),'shape',str(src)],capture_output=True,text=True)
+    run=run_cli_utf8(cli,'shape',src)
     assert run.returncode!=0 and 'Entidade' in run.stderr
     assert not list(tmp_path.glob('*nest_contorno*'))
 
@@ -112,6 +128,19 @@ def test_cli_error_nonzero_no_output(tmp_path):
 def test_cli_report(tmp_path):
     src=make_dxf(tmp_path)
     cli=Path(__file__).resolve().parents[1]/'laser_cli.py'
-    run=subprocess.run([sys.executable,str(cli),'report',str(src),'--cut','12.5'],capture_output=True,text=True)
+    run=run_cli_utf8(cli,'report',src,'--cut','12.5')
     assert run.returncode==0,run.stderr
     assert 'custo estimado' in json.loads(run.stdout)['summary']
+
+
+def test_cli_utf8_even_when_parent_locale_is_legacy(tmp_path):
+    """Unicode text must survive a Windows-1252 environment in the CLI process."""
+    src=make_dxf(tmp_path, 'pecas_ação_çã')
+    cli=Path(__file__).resolve().parents[1]/'laser_cli.py'
+    env=dict(os.environ, PYTHONUTF8='0', PYTHONIOENCODING='cp1252')
+    # The CLI contract overrides stdout encoding to UTF-8 itself.
+    result=subprocess.run([sys.executable,str(cli),'report',str(src)],
+                          stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,timeout=45)
+    assert result.returncode == 0, result.stderr.decode('utf-8',errors='replace')
+    payload=json.loads(result.stdout.decode('utf-8'))
+    assert payload['ok'] and 'área' in payload['summary']

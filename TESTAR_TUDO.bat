@@ -1,20 +1,20 @@
 @echo off
-chcp 65001 >nul
+setlocal
 cd /d "%~dp0"
-set "ENGINE=%LOCALAPPDATA%\LaserToolsFree\venv\Scripts\python.exe"
-if not exist "%ENGINE%" (
-  echo Nao ha ambiente Python do Laser Tools Free. Execute INSTALAR_TUDO.bat primeiro.
+set "PYTHONUTF8=1"
+set "PYTHONIOENCODING=utf-8"
+where py >nul 2>nul
+if errorlevel 1 (
+  echo Este teste e apenas para desenvolvedores e requer Python no ambiente de desenvolvimento.
+  echo O pacote final do GitHub nao exige Python no PC do usuario.
   pause
   exit /b 1
 )
-"%ENGINE%" -m pip install -q pytest
-if errorlevel 1 (echo Erro instalando pytest & pause & exit /b 1)
-cd /d "%~dp0Python_DXF"
-"%ENGINE%" -m pytest -q
-if errorlevel 1 (echo Testes de processamento falharam & pause & exit /b 1)
-cd /d "%~dp0CorelAddon"
-"%ENGINE%" -m pytest -q
-if errorlevel 1 (echo Testes de estrutura falharam & pause & exit /b 1)
-echo Todos testes de codigo passaram. A integracao real com CorelDRAW e RDWorks
- echo exige validacao manual neste computador.
+py -3 -m pytest -q Python_DXF/tests CorelAddon/tests
+if errorlevel 1 (
+  echo FALHA nos testes. Consulte as mensagens acima.
+  pause
+  exit /b 1
+)
+echo Testes de codigo aprovados. A validacao do painel exige CorelDRAW 2024 real.
 pause

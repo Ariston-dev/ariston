@@ -5,60 +5,133 @@ on:
   push:
     branches: [main, master]
 
+permissions:
+  contents: read
+
+env:
+  # Windows runner can default to cp1252. Force consistent UTF-8 for Python
+  # AND its subprocesses; -X utf8 alone only affects the parent interpreter.
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: 'utf-8'
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+
 jobs:
-  compilar:
+  testes:
+    name: Testes DXF / integracao
     runs-on: windows-2022
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           architecture: 'x64'
-      - uses: microsoft/setup-msbuild@v2
-      - name: Dependencias para teste e EXEs
+      - name: Instalar dependencias
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r Python_DXF/requirements.txt pyinstaller pytest lxml
-      - name: Testes do motor e do painel
+          python -m pip install -r Python_DXF/requirements.txt pytest lxml pyyaml
+          if ($LASTEXITCODE -ne 0) { throw 'Erro ao instalar dependencias de testes' }
+      - name: Executar testes, inclusive processos filhos e acentos
         shell: pwsh
         run: |
           $env:PYTHONPATH = (Resolve-Path Python_DXF).Path
           python -X utf8 -m pytest -q Python_DXF/tests CorelAddon/tests
-      - name: Compilar painel WPF para .NET Framework 4.8
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes do motor ou painel.' }
+
+  painel:
+    name: Compilar DLL WPF no Windows
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+      - name: Compilar DLL de CorelDRAW em Release x64
         shell: pwsh
         run: |
           msbuild CorelAddon/LaserToolsFree.Docker/LaserToolsFree.Docker.csproj /t:Rebuild /p:Configuration=Release /p:Platform=x64 /v:minimal /nologo
-          if ($LASTEXITCODE -ne 0) { throw 'Compilação do painel falhou.' }
-          if (-not (Test-Path 'CorelAddon/LaserToolsFree.Docker/bin/Release/LaserToolsFree.Docker.dll')) { throw 'DLL não gerada.' }
-      - name: Criar executáveis Windows sem exigir Python instalado
+          if ($LASTEXITCODE -ne 0) { throw 'MSBuild falhou; leia as mensagens CS/XAML desta etapa.' }
+          $dll='CorelAddon/LaserToolsFree.Docker/bin/Release/LaserToolsFree.Docker.dll'
+          if (-not (Test-Path $dll)) { throw 'MSBuild nao produziu a DLL esperada.' }
+          [void][Reflection.AssemblyName]::GetAssemblyName((Resolve-Path $dll).Path)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ltf-painel-dll
+          path: CorelAddon/LaserToolsFree.Docker/bin/Release/LaserToolsFree.Docker.dll
+          if-no-files-found: error
+          retention-days: 14
+
+  executaveis:
+    name: Compilar Python portatil Windows
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: 'x64'
+      - name: Instalar dependencias para gerar executaveis
         shell: pwsh
         run: |
-          Push-Location Python_DXF
-          python -m PyInstaller --noconfirm --clean --onefile --console --name LaserDXFEngine --collect-all ezdxf laser_cli.py
-          if ($LASTEXITCODE -ne 0) { throw 'Falha ao gerar motor DXF.' }
-          python -m PyInstaller --noconfirm --clean --onefile --windowed --name LaserToolsFreeEditor --collect-all ezdxf laser_tools_free.py
-          if ($LASTEXITCODE -ne 0) { throw 'Falha ao gerar editor DXF.' }
-          Pop-Location
-      - name: Testar motor compilado com DXF real de exemplo
+          python -m pip install --upgrade pip
+          python -m pip install -r Python_DXF/requirements.txt pyinstaller
+          if ($LASTEXITCODE -ne 0) { throw 'Falha em dependencias do motor.' }
+      - name: Gerar dois arquivos executaveis
+        shell: pwsh
+        working-directory: Python_DXF
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --console --name LaserDXFEngine --collect-all ezdxf --collect-all shapely laser_cli.py
+          if ($LASTEXITCODE -ne 0) { throw 'Falha compilando LaserDXFEngine.exe' }
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name LaserToolsFreeEditor --collect-all ezdxf --collect-all shapely laser_tools_free.py
+          if ($LASTEXITCODE -ne 0) { throw 'Falha compilando LaserToolsFreeEditor.exe' }
+      - name: Testar o executavel real usando um DXF de exemplo
         shell: pwsh
         run: |
-          $result = & 'Python_DXF/dist/LaserDXFEngine.exe' report 'Python_DXF/exemplos/figuras_fechadas.dxf'
-          if ($LASTEXITCODE -ne 0) { throw 'EXE do motor não executou.' }
-          $json = ($result | Out-String).Trim() | ConvertFrom-Json
-          if (-not $json.ok) { throw 'EXE retornou resposta inválida.' }
-          Write-Host $result
-      - name: Montar pacote pronto para instalar
+          $exe='Python_DXF/dist/LaserDXFEngine.exe'
+          if (-not (Test-Path $exe)) { throw 'Motor exe nao gerado.' }
+          $lines = & $exe report 'Python_DXF/exemplos/figuras_fechadas.dxf' 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "Motor exe falhou: $lines" }
+          $answer = ($lines | Out-String).Trim() | ConvertFrom-Json
+          if (-not $answer.ok) { throw 'Motor nao devolveu JSON valido.' }
+          Write-Host 'Motor EXE abriu DXF de exemplo e produziu JSON valido.'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ltf-motor-portatil
+          path: |
+            Python_DXF/dist/LaserDXFEngine.exe
+            Python_DXF/dist/LaserToolsFreeEditor.exe
+          if-no-files-found: error
+          retention-days: 14
+
+  empacotar:
+    name: Montar pacote apos todas as verificacoes
+    needs: [testes, painel, executaveis]
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ltf-painel-dll
+          path: arquivos_compilados/painel
+      - uses: actions/download-artifact@v4
+        with:
+          name: ltf-motor-portatil
+          path: arquivos_compilados/engine
+      - name: Criar pacote de instalacao
         shell: pwsh
         run: |
-          $out = 'Pacote_Pronto_CorelDRAW_2024'
-          New-Item -Path "$out/engine" -ItemType Directory -Force | Out-Null
-          $plugin = 'CorelAddon/LaserToolsFree.Docker'
-          Copy-Item "$plugin/AppUI.xslt", "$plugin/UserUI.xslt", "$plugin/CorelDrw.addon", "$plugin/bin/Release/LaserToolsFree.Docker.dll" "$out/"
-          Copy-Item 'Python_DXF/dist/LaserDXFEngine.exe', 'Python_DXF/dist/LaserToolsFreeEditor.exe' "$out/engine/"
-          Copy-Item 'Distribuicao_Windows/INSTALAR_PLUGIN.bat', 'Distribuicao_Windows/INSTALAR_PLUGIN.ps1', 'Distribuicao_Windows/DESINSTALAR_PLUGIN.bat', 'Distribuicao_Windows/DESINSTALAR_PLUGIN.ps1', 'Distribuicao_Windows/LEIA-ME.txt' "$out/"
+          $out='Pacote_Pronto_CorelDRAW_2024'
+          New-Item -ItemType Directory -Force -Path "$out/engine" | Out-Null
+          $plugin='CorelAddon/LaserToolsFree.Docker'
+          Copy-Item "$plugin/AppUI.xslt", "$plugin/UserUI.xslt", "$plugin/CorelDrw.addon" $out
+          Copy-Item 'arquivos_compilados/painel/LaserToolsFree.Docker.dll' $out
+          Copy-Item 'arquivos_compilados/engine/LaserDXFEngine.exe', 'arquivos_compilados/engine/LaserToolsFreeEditor.exe' "$out/engine/"
+          Copy-Item 'Distribuicao_Windows/INSTALAR_PLUGIN.bat', 'Distribuicao_Windows/INSTALAR_PLUGIN.ps1', 'Distribuicao_Windows/DESINSTALAR_PLUGIN.bat', 'Distribuicao_Windows/DESINSTALAR_PLUGIN.ps1', 'Distribuicao_Windows/LEIA-ME.txt' $out
+          foreach ($name in @('AppUI.xslt','UserUI.xslt','CorelDrw.addon','LaserToolsFree.Docker.dll','engine/LaserDXFEngine.exe','engine/LaserToolsFreeEditor.exe','INSTALAR_PLUGIN.bat')) {
+            if (-not (Test-Path "$out/$name")) { throw "Faltou arquivo no pacote: $name" }
+          }
+          foreach ($bin in @("$out/LaserToolsFree.Docker.dll", "$out/engine/LaserDXFEngine.exe", "$out/engine/LaserToolsFreeEditor.exe")) {
+            $signature = [IO.File]::ReadAllBytes((Resolve-Path $bin).Path)
+            if ($signature.Length -lt 2048 -or $signature[0] -ne 77 -or $signature[1] -ne 90) { throw "Binario Windows invalido: $bin" }
+          }
           Compress-Archive -Path $out -DestinationPath 'Laser_Tools_Free_CorelDRAW_2024_Pronto.zip' -Force
       - uses: actions/upload-artifact@v4
         with:

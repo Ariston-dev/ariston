@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Web.Script.Serialization;
 
 namespace LaserToolsFree.Docker
@@ -37,6 +38,7 @@ namespace LaserToolsFree.Docker
             var info=new ProcessStartInfo(executable,args)
             {
                 UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,
+                StandardOutputEncoding=Encoding.UTF8, StandardErrorEncoding=Encoding.UTF8,
                 WorkingDirectory=EngineDir
             };
             using (var process=Process.Start(info))

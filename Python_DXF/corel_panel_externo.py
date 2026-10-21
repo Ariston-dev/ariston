@@ -63,8 +63,8 @@ class CorelWindow(tk.Tk):
                   'O resultado NÃO será salvo automaticamente. Continuar?'):
                 return
             path,count=duplicate_grid(connect(),rows,columns,gap,self.folder.get())
-            message=f'{count} conjunto(s) duplicado(s) no CorelDRAW.\nBackup: {path}\n'
-                    'Volte ao CorelDRAW, confira e use Ctrl+Z se quiser desfazer.'
+            message=(f'{count} conjunto(s) duplicado(s) no CorelDRAW.\nBackup: {path}\n'
+                     'Volte ao CorelDRAW, confira e use Ctrl+Z se quiser desfazer.')
             self.status.set(message)
             messagebox.showinfo('Pronto para conferir',message)
         except (CorelBridgeError,ValueError) as exc:

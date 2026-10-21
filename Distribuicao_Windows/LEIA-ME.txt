@@ -1,0 +1,18 @@
+LASER TOOLS FREE v5.1 - COMPILACAO PORTATIL PARA CORELDRAW 2024
+
+ESTE PACOTE E GERADO PELO GITHUB ACTIONS EM WINDOWS.
+No computador do usuario nao exige instalar Python, Visual Studio nem VBA.
+
+COMO INSTALAR:
+1. Descompacte o ZIP inteiro; nao execute de dentro do ZIP.
+2. Feche o CorelDRAW 2024.
+3. Execute INSTALAR_PLUGIN.bat e autorize o Windows a copiar para Program Files.
+4. Abra o CorelDRAW 2024; procure Laser Tools Free em Janela > Janelas de encaixe.
+5. Primeiro teste com desenho pequeno NOVO e sem valor comercial.
+
+Os arquivos de origem CDR sao preservados com backup antes das edicoes.
+O editor e motor DXF sao distribuidos como EXEs portateis na pasta engine.
+Compatibilidade real com o CorelDRAW 2024 e RDWorks so sera confirmada
+apos testes no PC com esses programas instalados. Nao e equivalencia total ao eCut.
+
+Para remover, feche CorelDRAW e execute DESINSTALAR_PLUGIN.bat.

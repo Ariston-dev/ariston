@@ -1,0 +1,40 @@
+LASER TOOLS FREE v2
+===================
+
+Projeto independente, não afiliado ao eCut e sem código proprietário do eCut.
+
+Inclui nesta versão:
+- Limpeza de entidades LINE duplicadas em DXF.
+- Relatório de entidades e dimensões aproximadas.
+- Escala X/Y em porcentagem.
+- Multiplicação de cópias em linha com espaçamento.
+
+Instalação:
+1. Instale Python 3 para Windows em https://www.python.org/downloads/
+2. Durante a instalação, marque Add Python to PATH.
+3. Abra o Prompt de Comando e execute:
+   py -m pip install ezdxf
+4. Extraia o ZIP.
+5. Execute:
+   py laser_tools_free.py
+
+Uso:
+1. Exporte uma cópia do desenho do CorelDRAW como DXF.
+2. Abra o programa e escolha o DXF.
+3. Escolha a aba e a ferramenta.
+4. Revise o novo DXF antes de usar no RDWorks.
+
+Avisos:
+- Faça backup dos arquivos originais.
+- O DXF pode ter unidades indefinidas; confirme se a escala está em mm.
+- Escala é aplicada em torno da origem (0,0).
+- Cópias são colocadas no eixo X; verifique se não se sobrepõem.
+- A limpeza trata apenas LINE simples, não polilinhas, arcos, círculos, splines ou sobreposições parciais.
+- Algumas entidades podem não suportar transformações; revise o resultado.
+
+Ainda não incluído:
+- Nesting automático avançado.
+- Offset/contorno automático robusto.
+- Limpeza de duplicatas em polilinhas.
+- Otimização de percurso.
+- Integração direta com CorelDRAW.

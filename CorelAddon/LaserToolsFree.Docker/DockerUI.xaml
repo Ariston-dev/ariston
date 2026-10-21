@@ -1,0 +1,135 @@
+<UserControl x:Class="LaserToolsFree.Docker.DockerUI"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="270" MinHeight="340">
+  <UserControl.Resources>
+    <Style TargetType="Button">
+      <Setter Property="Margin" Value="0,5,0,4" />
+      <Setter Property="Padding" Value="10,8" />
+      <Setter Property="MinHeight" Value="31" />
+    </Style>
+    <Style TargetType="TextBox">
+      <Setter Property="Margin" Value="0,3,5,6" />
+      <Setter Property="Padding" Value="5" />
+      <Setter Property="MinWidth" Value="65" />
+    </Style>
+    <Style TargetType="TextBlock">
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+  </UserControl.Resources>
+  <Grid Background="#F7F8FA">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <Border Grid.Row="0" Background="#20374E" Padding="13,13,13,11">
+      <StackPanel>
+        <TextBlock Text="LASER TOOLS FREE" FontSize="16" FontWeight="Bold" Foreground="White" />
+        <TextBlock Text="CorelDRAW 2024 · integração experimental v5.1" FontSize="11" Foreground="#E5EDF4" />
+      </StackPanel>
+    </Border>
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="12,10,12,12">
+        <Border Background="White" BorderBrush="#D5DDE6" BorderThickness="1" CornerRadius="5" Padding="10">
+          <StackPanel>
+            <TextBlock Text="SELEÇÃO ATUAL" FontWeight="Bold" FontSize="12" Foreground="#24364A" />
+            <TextBlock x:Name="TxtSelection" Text="Selecione objetos e clique em Atualizar." FontSize="12" Margin="0,6,0,5" />
+            <Button Content="Atualizar seleção" Click="BtnRefresh_Click" />
+          </StackPanel>
+        </Border>
+        <TabControl Margin="0,11,0,0" MinHeight="300">
+          <TabItem Header="Cópias">
+            <StackPanel Margin="10,11,10,12">
+              <TextBlock Text="Duplicar a seleção em grade" FontWeight="Bold" Margin="0,0,0,8" />
+              <TextBlock Text="Linhas" />
+              <TextBox x:Name="TxtRows" Text="2" />
+              <TextBlock Text="Colunas" />
+              <TextBox x:Name="TxtColumns" Text="3" />
+              <TextBlock Text="Espaçamento (mm)" />
+              <TextBox x:Name="TxtGap" Text="3" />
+              <Button Content="Gerar cópias no desenho" Click="BtnGrid_Click" FontWeight="SemiBold" />
+              <TextBlock Margin="0,5,0,0" Foreground="#6A521D" FontSize="11"
+                         Text="Não é nesting. Duplica o conjunto selecionado, mantendo o original." />
+            </StackPanel>
+          </TabItem>
+          <TabItem Header="Medidas">
+            <StackPanel Margin="10,11,10,12">
+              <TextBlock Text="Redimensionar a seleção" FontWeight="Bold" Margin="0,0,0,8" />
+              <TextBlock Text="Largura (mm)" />
+              <TextBox x:Name="TxtWidth" Text="100" />
+              <TextBlock Text="Altura (mm)" />
+              <TextBox x:Name="TxtHeight" Text="50" />
+              <CheckBox x:Name="ChkRatio" IsChecked="True" Margin="0,5,0,8"
+                        Content="Manter proporção (usar largura)" />
+              <Button Content="Aplicar dimensões" Click="BtnResize_Click" />
+              <TextBlock Text="Girar seleção" FontWeight="Bold" Margin="0,12,0,5" />
+              <Button Content="Girar 90° para a esquerda" Click="BtnRotateLeft_Click" />
+              <Button Content="Girar 90° para a direita" Click="BtnRotateRight_Click" />
+            </StackPanel>
+          </TabItem>
+          <TabItem Header="DXF">
+            <StackPanel Margin="10,11,10,12">
+              <TextBlock Text="Motor DXF integrado / ezdxf" FontWeight="Bold" Margin="0,0,0,7" />
+              <TextBlock Text="A aba Preparar corte agora envia a seleção ao motor DXF e importa o resultado em uma NOVA camada. A origem permanece intacta; o retorno ainda precisa de verificação de escala/posição no CorelDRAW 2024." />
+              <Button Content="Exportar seleção para DXF (experimental)" Click="BtnExportSelection_Click" />
+              <Button Content="Exportar seleção e abrir no editor DXF" Click="BtnExportAndOpen_Click" />
+              <Button Content="Abrir ferramentas DXF externas" Click="BtnOpenDXF_Click" />
+              <TextBlock Margin="0,10,0,0" Text="O novo fluxo de retorno é experimental: confira origem, escala, curvas e cores antes de usar no RDWorks." />
+            </StackPanel>
+          </TabItem>
+          <TabItem Header="Preparar corte">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel Margin="10,10,10,10">
+                <TextBlock Text="Limpeza e ajustes na seleção" FontWeight="Bold"/>
+                <Button Content="Remover segmentos duplicados" Click="BtnClean_Click"/>
+                <TextBlock Text="Contorno externo/interno (mm)"/>
+                <TextBox x:Name="TxtOffset" Text="1"/>
+                <Button Content="Criar offset em nova camada" Click="BtnOffset_Click"/>
+                <TextBlock Text="Chapa para encaixe (mm)" FontWeight="Bold" Margin="0,12,0,0"/>
+                <TextBlock Text="Largura"/>
+                <TextBox x:Name="TxtSheetWidth" Text="600"/>
+                <TextBlock Text="Altura"/>
+                <TextBox x:Name="TxtSheetHeight" Text="400"/>
+                <TextBlock Text="Espaçamento entre peças"/>
+                <TextBox x:Name="TxtSpacing" Text="2"/>
+                <TextBlock Text="Margem da chapa"/>
+                <TextBox x:Name="TxtMargin" Text="2"/>
+                <TextBlock Text="Cópias por objeto"/>
+                <TextBox x:Name="TxtCopies" Text="1"/>
+                <Button Content="Nesting retangular (caixas)" Click="BtnRectangle_Click"/>
+                <Button Content="Nesting real de contornos retos" Click="BtnShape_Click" FontWeight="Bold"/>
+                <TextBlock FontSize="11" Text="Nesting real: somente contornos 2D fechados, retos ou círculos; heurístico, 1 chapa, até 60 peças. Resultado em camada nova, não substitui os originais."/>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+          <TabItem Header="Custos / RDWorks">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel Margin="10,10,10,10">
+                <TextBlock Text="Preço material (R$/m²)"/>
+                <TextBox x:Name="TxtMaterial" Text="80"/>
+                <TextBlock Text="Preço de corte (R$/m)"/>
+                <TextBox x:Name="TxtCut" Text="5"/>
+                <TextBlock Text="Taxa fixa (R$)"/>
+                <TextBox x:Name="TxtSetup" Text="0"/>
+                <Button Content="Medir área, perímetro e custo" Click="BtnCost_Click"/>
+                <Button Content="Criar DXF para abrir no RDWorks" Click="BtnRDWorks_Click"/>
+                <TextBlock Margin="0,12,0,0" FontSize="11" Text="Não cria .rd da máquina e não ajusta potência/velocidade. Valide as unidades, camadas e simule o corte no RDWorks antes de iniciar o laser."/>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+        </TabControl>
+        <Border Background="#FFF7E8" Margin="0,11,0,0" BorderBrush="#DFCB9A" BorderThickness="1" Padding="8">
+          <StackPanel>
+            <TextBlock Text="Proteção dos arquivos" FontWeight="Bold" />
+            <TextBlock FontSize="11" Text="Antes de cada alteração, o painel cria uma cópia CDR em Documentos\LaserToolsFree\Backups. Não salva o documento modificado automaticamente. Ctrl+Z desfaz as operações." />
+            <Button Content="Abrir pasta de backups" Click="BtnOpenBackups_Click" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+    <Border Grid.Row="2" Background="#EAF0F5" Padding="10,8" BorderBrush="#CED7E0" BorderThickness="1,1,0,0">
+      <TextBlock x:Name="TxtStatus" FontSize="11" Text="Pronto · Trabalhe primeiro em um CDR de teste." />
+    </Border>
+  </Grid>
+</UserControl>

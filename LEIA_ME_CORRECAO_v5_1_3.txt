@@ -1,0 +1,48 @@
+LASER TOOLS FREE - CORRECAO v5.1.3 - 21/10/2026
+
+ERRO: IndentationError: unexpected indent
+Arquivo encontrado no GitHub Actions:
+D:\a\ariston\ariston\corel_panel_externo.py
+
+CAUSA: O teste v5.1.2 vasculhava todos os *.py da raiz do repositório.
+Um arquivo antigo extra na raiz (fora do aplicativo atual) tem sintaxe inválida.
+O arquivo de produção correspondente fica em:
+Python_DXF\corel_panel_externo.py
+
+CORRECAO: Atualizado o único arquivo:
+CorelAddon\tests\test_project_preflight.py
+
+Agora ele confere TODOS os arquivos .py das duas árvores efetivamente
+usadas pelo projeto (Python_DXF e CorelAddon), incluindo os testes, sem
+incluír cópias antigas e acidentais armazenadas fora dessas árvores.
+Existe um teste de regressão que simula exatamente esse cenário.
+
+COMO APLICAR NO GITHUB DESKTOP
+1. Extraia este ZIP.
+2. No GitHub Desktop, abra Repository > Show in Explorer.
+3. Copie a pasta CorelAddon extraída para a raiz do repositório,
+   mesclando as pastas e SUBSTITUINDO apenas
+   CorelAddon\tests\test_project_preflight.py.
+4. Volte ao GitHub Desktop: apenas esse arquivo de código deve
+   aparecer modificado (mais nenhum arquivo de código é necessário).
+5. Escreva "Corrigir teste para ignorar arquivos legados na raiz" no Summary.
+6. Clique Commit to main e Push origin.
+7. Na aba Actions, os trabalhos independentes de teste, DLL e EXE
+   deverão ser executados novamente.
+
+DICA: Se existir um corel_panel_externo.py NA RAIZ de Ariston,
+provavelmente é uma cópia antiga desnecessária. Não precisa apagá-lo
+para fazer este teste passar; só não o confunda com Python_DXF\corel_panel_externo.py.
+
+VERIFICACOES FEITAS AQUI
+- 63 testes aprovados + 19 subtestes.
+- Mesmo com um corel_panel_externo.py invalido criado na raiz,
+  todos os 63 testes + 19 subtestes passaram.
+- Todos os 15 arquivos Python do projeto analisados sintaticamente.
+- Execucao real do motor Python para relatorio de DXF: OK.
+
+LIMITES
+Nao foi possivel compilar a DLL Windows nem carregar o painel no
+CorelDRAW 2024 neste ambiente. Os jobs separados no GitHub Actions
+sao as verificacoes reais seguintes; nao ha garantia de ausencia total
+de falhas ate que eles passem, e depois ainda falta o teste no CorelDRAW.

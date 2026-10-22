@@ -6,22 +6,86 @@ using System.Globalization;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Runtime.InteropServices;
 
 namespace LaserToolsFree.Docker
 {
     /// <summary>Instanciado diretamente pelo host WPF do CorelDRAW.</summary>
     public partial class DockerUI : UserControl
     {
-        private readonly CorelService _corel;
+        private CorelService _corel;
         private bool _processing;
 
-        // CorelDRAW fornece Application ao construtor do controle hospedado.
-        // object evita distribuir DLLs proprietárias do Corel ou exigir VBA.
+        // Alguns hosts WPF instanciam por construtor sem argumentos, outros
+        // passam a API do CorelDRAW. Ambos devem poder mostrar a interface.
+        public DockerUI() : this(null) { }
+
         public DockerUI(object application)
         {
-            InitializeComponent();
-            _corel = new CorelService(application);
-            TxtStatus.Text = "Painel carregado. Clique em Atualizar seleção.";
+            try
+            {
+                InitializeComponent();
+                if (application != null) _corel = new CorelService(application);
+                TxtStatus.Text = "Painel carregado. Abra um CDR de teste e clique em Atualizar seleção.";
+                WriteDiagnostic("Controle WPF instanciado; Corel API recebida: " + (application != null));
+            }
+            catch (Exception ex)
+            {
+                WriteDiagnostic("ERRO inicializando interface WPF: " + ex);
+                // Se o XAML falhar durante InitializeComponent, o usuário ainda
+                // verá um aviso (não apenas o espaço branco do docker).
+                Content = new Border
+                {
+                    Background = Brushes.White,
+                    Padding = new Thickness(16),
+                    Child = new TextBlock
+                    {
+                        Foreground = Brushes.DarkRed,
+                        TextWrapping = TextWrapping.Wrap,
+                        Text = "Laser Tools Free não conseguiu iniciar a interface. " +
+                               "Consulte Documentos\\LaserToolsFree\\Logs\\Docker_WPF.log.\n\n" + ex.Message
+                    }
+                };
+            }
+        }
+
+        private static void WriteDiagnostic(string message)
+        {
+            try
+            {
+                string directory = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                    "LaserToolsFree", "Logs");
+                Directory.CreateDirectory(directory);
+                File.AppendAllText(Path.Combine(directory, "Docker_WPF.log"),
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " " + message + Environment.NewLine);
+            }
+            catch { /* Não quebrar a interface por erro na gravação do log. */ }
+        }
+
+        private CorelService Corel
+        {
+            get
+            {
+                if (_corel != null) return _corel;
+                // Modo compatível com host que chamou o construtor vazio.
+                // Não se conecta a outra versão arbitrária do CorelDRAW.
+                try
+                {
+                    object app = Marshal.GetActiveObject("CorelDRAW.Application.24");
+                    _corel = new CorelService(app);
+                    WriteDiagnostic("Conexão ao CorelDRAW 2022 estabelecida via COM.");
+                    return _corel;
+                }
+                catch (Exception ex)
+                {
+                    WriteDiagnostic("Falha na conexão COM: " + ex);
+                    throw new InvalidOperationException(
+                        "A interface abriu, mas não foi possível acessar a API do CorelDRAW 2022. " +
+                        "Confira o registro em Documentos\\LaserToolsFree\\Logs\\Docker_WPF.log.", ex);
+                }
+            }
         }
 
         private void Error(Exception ex)
@@ -47,7 +111,7 @@ namespace LaserToolsFree.Docker
 
         private void Refresh()
         {
-            SelectionSnapshot s = _corel.Inspect();
+            SelectionSnapshot s = Corel.Inspect();
             string unit = s.Unit == 3 ? "mm" : "outra unidade (ajuste o documento para mm)";
             TxtSelection.Text = "Documento: " + s.Name + "\nObjetos: " + s.Count +
                 "\nLargura: " + Calculations.Mm(s.Width) + " " + unit +
@@ -71,10 +135,10 @@ namespace LaserToolsFree.Docker
                 int rows = Calculations.PositiveCount(TxtRows.Text, "Linhas");
                 int cols = Calculations.PositiveCount(TxtColumns.Text, "Colunas");
                 double gap = Calculations.Number(TxtGap.Text, "Espaçamento", 0, 10000);
-                SelectionSnapshot s = _corel.Inspect();
+                SelectionSnapshot s = Corel.Inspect();
                 Calculations.CheckGrid(rows, cols, gap, s.Width, s.Height);
                 if (!Confirm("Criar " + (rows * cols - 1) + " cópia(s) da seleção em grade")) return;
-                string path = _corel.Grid(rows, cols, gap);
+                string path = Corel.Grid(rows, cols, gap);
                 Refresh();
                 TxtStatus.Text = "Cópias criadas. Backup: " + path;
             });
@@ -85,13 +149,13 @@ namespace LaserToolsFree.Docker
             Run(() =>
             {
                 double w = Calculations.Number(TxtWidth.Text, "Largura", 0.01, 100000);
-                SelectionSnapshot s = _corel.Inspect();
+                SelectionSnapshot s = Corel.Inspect();
                 double h = ChkRatio.IsChecked == true
                     ? Calculations.ProportionalHeight(s.Width, s.Height, w)
                     : Calculations.Number(TxtHeight.Text, "Altura", 0.01, 100000);
                 if (h < 0.01 || h > 100000) throw new ArgumentException("Altura calculada fora dos limites.");
                 if (!Confirm("Ajustar a seleção para " + Calculations.Mm(w) + " × " + Calculations.Mm(h) + " mm")) return;
-                string path = _corel.Resize(w, h);
+                string path = Corel.Resize(w, h);
                 Refresh();
                 TxtStatus.Text = "Dimensões aplicadas. Backup: " + path;
             });
@@ -105,7 +169,7 @@ namespace LaserToolsFree.Docker
             Run(() =>
             {
                 if (!Confirm("Girar a seleção " + degrees + " graus")) return;
-                string path = _corel.Rotate90(degrees);
+                string path = Corel.Rotate90(degrees);
                 Refresh();
                 TxtStatus.Text = "Rotação feita. Backup: " + path;
             });
@@ -133,7 +197,7 @@ namespace LaserToolsFree.Docker
                     "O arquivo CDR permanecerá inalterado. Verifique as opções DXF exibidas pelo CorelDRAW.",
                     "Exportação DXF experimental", MessageBoxButton.YesNo, MessageBoxImage.Question)
                     != MessageBoxResult.Yes) return;
-                string path = _corel.ExportSelectionDxf();
+                string path = Corel.ExportSelectionDxf();
                 TxtStatus.Text = "DXF de seleção: " + path;
                 MessageBox.Show("DXF criado: " + path + "\n\nConfira curvas, unidades e dimensões antes de usar no RDWorks.",
                     "DXF exportado", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -150,7 +214,7 @@ namespace LaserToolsFree.Docker
                 if (MessageBox.Show("Criar um DXF da seleção e abrir o editor DXF? O CDR NÃO será modificado.",
                     "Exportação experimental", MessageBoxButton.YesNo, MessageBoxImage.Question)
                     != MessageBoxResult.Yes) return;
-                string path = _corel.ExportSelectionDxf();
+                string path = Corel.ExportSelectionDxf();
                 StartEngine(path);
                 TxtStatus.Text = "DXF exportado e aberto no editor DXF: " + path;
             });
@@ -186,18 +250,18 @@ namespace LaserToolsFree.Docker
                     : "Processar a seleção em DXF sem alterar o desenho?";
                 if (MessageBox.Show(question, "Laser Tools Free v5", MessageBoxButton.YesNo, MessageBoxImage.Question)
                     != MessageBoxResult.Yes) return;
-                SelectionSnapshot origin = _corel.Inspect();
-                string input=_corel.ExportSelectionDxf();
+                SelectionSnapshot origin = Corel.Inspect();
+                string input=Corel.ExportSelectionDxf();
                 TxtStatus.Text="Processando " + command + "...";
                 var result=await Task.Run(() => EngineRunner.Execute(command,input,options));
                 // Não importa automaticamente em outro documento se usuário trocar de janela.
-                SelectionSnapshot current = _corel.Inspect();
+                SelectionSnapshot current = Corel.Inspect();
                 if (current.Name != origin.Name || current.Unit != origin.Unit || current.Count != origin.Count)
                     throw new InvalidOperationException("Seleção/documento mudou durante o processamento. O DXF foi salvo, mas não será importado automaticamente.");
                 if (import && !string.IsNullOrWhiteSpace(result.Output))
                 {
                     if (!Confirm("Importar o DXF processado sem remover nem substituir o original")) return;
-                    string backup=_corel.ImportResultAsNewLayer(result.Output,command);
+                    string backup=Corel.ImportResultAsNewLayer(result.Output,command);
                     TxtStatus.Text="Nova camada criada. " + result.Summary;
                     MessageBox.Show(result.Summary+"\n\nDXF: "+result.Output+
                         "\n\nBackup CDR: "+backup+

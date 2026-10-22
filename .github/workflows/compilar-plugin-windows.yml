@@ -52,6 +52,11 @@ jobs:
           $dll='CorelAddon/LaserToolsFree.Docker/bin/Release/LaserToolsFree.Docker.dll'
           if (-not (Test-Path $dll)) { throw 'MSBuild nao produziu a DLL esperada.' }
           [void][Reflection.AssemblyName]::GetAssemblyName((Resolve-Path $dll).Path)
+      - name: Testar carregamento real do XAML em ambiente WPF Windows
+        shell: pwsh
+        run: |
+          powershell.exe -NoProfile -Sta -ExecutionPolicy Bypass -File CorelAddon/tools/Testar-Painel-WPF.ps1 -AssemblyPath 'CorelAddon/LaserToolsFree.Docker/bin/Release/LaserToolsFree.Docker.dll'
+          if ($LASTEXITCODE -ne 0) { throw 'A interface WPF compilou, mas nao abriu no teste de inicializacao.' }
       - uses: actions/upload-artifact@v4
         with:
           name: ltf-painel-dll

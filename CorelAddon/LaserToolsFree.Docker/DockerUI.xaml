@@ -26,7 +26,7 @@
     <Border Grid.Row="0" Background="#20374E" Padding="13,13,13,11">
       <StackPanel>
         <TextBlock Text="LASER TOOLS FREE" FontSize="16" FontWeight="Bold" Foreground="White" />
-        <TextBlock Text="CorelDRAW 2024 · integração experimental v5.1" FontSize="11" Foreground="#E5EDF4" />
+        <TextBlock Text="CorelDRAW 2022 · integração experimental v5.1.4" FontSize="11" Foreground="#E5EDF4" />
       </StackPanel>
     </Border>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -71,7 +71,7 @@
           <TabItem Header="DXF">
             <StackPanel Margin="10,11,10,12">
               <TextBlock Text="Motor DXF integrado / ezdxf" FontWeight="Bold" Margin="0,0,0,7" />
-              <TextBlock Text="A aba Preparar corte agora envia a seleção ao motor DXF e importa o resultado em uma NOVA camada. A origem permanece intacta; o retorno ainda precisa de verificação de escala/posição no CorelDRAW 2024." />
+              <TextBlock Text="A aba Preparar corte agora envia a seleção ao motor DXF e importa o resultado em uma NOVA camada. A origem permanece intacta; o retorno ainda precisa de verificação de escala/posição no CorelDRAW 2022." />
               <Button Content="Exportar seleção para DXF (experimental)" Click="BtnExportSelection_Click" />
               <Button Content="Exportar seleção e abrir no editor DXF" Click="BtnExportAndOpen_Click" />
               <Button Content="Abrir ferramentas DXF externas" Click="BtnOpenDXF_Click" />

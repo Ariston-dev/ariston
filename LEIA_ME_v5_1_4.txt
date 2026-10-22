@@ -1,0 +1,50 @@
+LASER TOOLS FREE v5.1.4 - DIAGNOSTICO DE PAINEL BRANCO NO CORELDRAW 2022
+
+IMPORTANTE: Este pacote NAO e um plugin compilado.
+Ele contem apenas arquivos-fonte e um teste automatizado de inicializacao WPF.
+Nao instale ou substitua a DLL em uso diretamente com estes arquivos.
+
+ESTADO ATUAL
+- O CorelDRAW 2022 ja mostrou a aba 'Laser Tools Free' ao usuario.
+- A area da aba esta branca. Isso confirma o registro do docker, NAO o carregamento da interface.
+- A causa exata ainda precisa de validacao no host CorelDRAW 2022.
+
+ALTERACOES
+- Dois construtores para o painel WPF (sem argumento e recebendo objeto da API Corel).
+- Acesso COM sob demanda, evitando bloquear a exibicao por falta de API na inicializacao.
+- Aviso visivel e arquivo de log quando InitializeComponent apresentar erro.
+- Rotulo atualizado para CorelDRAW 2022.
+- Teste no GitHub Actions que instancia o UserControl em Windows STA e verifica Grid e TxtStatus.
+- Testes preventivos do codigo-fonte.
+
+COMO APLICAR AO REPOSITORIO EXISTENTE
+1. Feche o CorelDRAW 2022.
+2. Extraia este ZIP.
+3. Abra o GitHub Desktop e escolha Repository > Show in Explorer.
+4. Copie para a pasta do repositorio AS PASTAS .github e CorelAddon do ZIP,
+   escolhendo substituir os arquivos existentes quando perguntado.
+5. No GitHub Desktop confira que estes 5 arquivos aparecem novos/modificados:
+   .github/workflows/compilar-plugin-windows.yml
+   CorelAddon/LaserToolsFree.Docker/DockerUI.xaml
+   CorelAddon/LaserToolsFree.Docker/DockerUI.xaml.cs
+   CorelAddon/tests/test_white_docker_diagnostics.py
+   CorelAddon/tools/Testar-Painel-WPF.ps1
+6. Commit to main, depois Push origin.
+7. No GitHub Actions confira 'Compilar DLL WPF no Windows' e a etapa
+   'Testar carregamento real do XAML em ambiente WPF Windows'.
+8. Se todos os jobs estiverem verdes, baixe o PRIMEIRO artifact montado.
+9. Extraia por completo o ZIP gerado. Feche o CorelDRAW 2022.
+10. Execute o instalador PowerShell apontando -CorelPrograms64 para a pasta
+    existente do CorelDRAW 2022. Nao mude o destino para 2024.
+11. Reabra o CorelDRAW 2022 e tente abrir a aba Laser Tools Free.
+12. Se a aba continuar vazia, procure o arquivo de diagnostico:
+    Documentos\LaserToolsFree\Logs\Docker_WPF.log
+    Se nao houver log, a falha pode ter acontecido antes da criacao do controle.
+
+TESTES EXECUTADOS NESTE AMBIENTE
+- 65 testes Python: APROVADOS.
+- 19 subtestes: APROVADOS.
+- Compilacao C# para Windows e inicializacao WPF no GitHub: NAO EXECUTADAS aqui.
+- CorelDRAW 2022 real: NAO TESTADO aqui.
+
+NUNCA execute operacoes de corte em um CDR de producao ate validar um arquivo de teste.

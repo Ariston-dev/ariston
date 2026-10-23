@@ -26,7 +26,7 @@
     <Border Grid.Row="0" Background="#20374E" Padding="13,13,13,11">
       <StackPanel>
         <TextBlock Text="LASER TOOLS FREE" FontSize="16" FontWeight="Bold" Foreground="White" />
-        <TextBlock Text="CorelDRAW 2022 · integração experimental v5.1.6" FontSize="11" Foreground="#E5EDF4" />
+        <TextBlock Text="CorelDRAW 2022 · integração experimental v5.1.7" FontSize="11" Foreground="#E5EDF4" />
       </StackPanel>
     </Border>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">

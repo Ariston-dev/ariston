@@ -1,0 +1,43 @@
+LASER TOOLS FREE v5.1.7 — CORRECAO DAS UNIDADES (CORELDRAW 2022)
+
+ERRO CORRIGIDO NO CODIGO-FONTE:
+- A mensagem “Esta ferramenta DXF exige documento em mm. Unidade interna recebida: 1” tambem era disparada ao redimensionar e girar.
+- O valor 1 do CorelDRAW 2022 significa POLEGADAS.
+- O painel agora mostra as dimensoes em mm e converte os valores antes do SetSize.
+- Girar 90 graus nao exige mais que o CDR esteja em mm.
+- A exportacao DXF exige explicitamente mm no filtro (DXFExport.Units=3).
+- A importacao DXF tenta usar escala metrica (DXFImport.Scaling=2). Se o Corel nao fornecer essa propriedade, a operacao sera interrompida; o resultado precisa ser validado no CorelDRAW.
+- A unidade interna do CDR NAO e alterada automaticamente.
+
+INSTALACAO (SOMENTE ALTERACOES DO CODIGO-FONTE):
+1. NAO copie .cs ou .xaml diretamente para a pasta Addons do CorelDRAW.
+2. No GitHub Desktop, Repository > Show in Explorer.
+3. Copie a pasta CorelAddon deste ZIP para a raiz do repositorio Ariston, substituindo arquivos.
+4. Confirme a alteracao dos arquivos no GitHub Desktop; Commit to main; Push origin.
+5. Em Actions, aguarde a compilacao v5.1.7 de uma nova DLL e os demais testes.
+6. Se os trabalhos da compilacao passarem, baixe o artefato ltf-painel-dll da NOVA execucao,
+   NAO o ZIP do codigo-fonte.
+7. Feche completamente o CorelDRAW 2022.
+8. Guarde uma copia da DLL antiga fora da pasta Addons.
+9. Substitua apenas LaserToolsFree.Docker.dll em:
+   C:\Program Files\Corel\CorelDRAW Graphics Suite 2022\Programs64\Addons\LaserToolsFree
+10. Desbloqueie essa DLL pelo menu Propriedades > Desbloquear, se aparecer, ou use Unblock-File pelo PowerShell.
+11. Reabra o CorelDRAW e confira no cabecalho 'CorelDRAW 2022 · integracao experimental v5.1.7'.
+
+TESTE SEGURO:
+- Novo CDR de teste; desenhe um retangulo 30 x 20 mm e salve com Ctrl+S.
+- Selecione, clique Atualizar selecao: largura 30 mm, altura 20 mm, unidade interna 1 (polegadas) ou 3 (mm).
+- Em Medidas, desmarque Manter proporcao, coloque 50 x 40 mm e clique Aplicar dimensoes UMA VEZ.
+- Confira as dimensoes reais na barra do Corel, depois Ctrl+Z se desejar.
+- Ctrl+S antes de usar cada funcao que modifica o documento, pois o backup so aceita CDR salvo.
+- Experimente Girar 90 graus em um arquivo novo de teste.
+- Exportar DXF deve gerar em mm; antes de usar RDWorks, compare 30 x 20 mm com o desenho.
+- Preparar corte/importacao na nova camada ainda precisa de verificacao presencial no Corel.
+
+VERIFICACOES REALIZADAS FORA DO WINDOWS:
+- 79 testes automatizados Python e 20 subtestes passaram.
+- Codigo C# com testes de API SIMULADA para 1=inch, medidas, rotacao, exportacao e importacao.
+- Compilacao real da DLL e integracao com CorelDRAW 2022 NAO foram executadas neste ambiente.
+- O GitHub Actions inclui compilacao Windows e teste C# simulado para esta atualizacao.
+
+ATENCAO: Nunca execute corte de producao sem conferir escala, contornos e simulacao RDWorks.

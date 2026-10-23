@@ -56,6 +56,22 @@ namespace LaserToolsFree.Docker
             }
         }
 
+        // Converte dimensoes internas do CorelDRAW para mm, sem alterar o documento.
+        public static double DocumentUnitsToMm(double value, int cdrUnit)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value) || value < 0)
+                throw new ArgumentException("Dimensao interna invalida.");
+            switch (cdrUnit)
+            {
+                case 1: return value * 25.4;  // polegadas
+                case 2: return value * 304.8; // pes
+                case 3: return value;         // mm
+                case 4: return value * 10.0;  // cm
+                case 7: return value * 1000.0;// metros
+                default: throw new InvalidOperationException("Unidade interna nao suportada: " + cdrUnit);
+            }
+        }
+
         public static double ProportionalHeight(double currentW, double currentH, double newW)
         {
             if (currentW <= 0 || currentH <= 0 || newW <= 0) throw new ArgumentException("Medidas inválidas.");

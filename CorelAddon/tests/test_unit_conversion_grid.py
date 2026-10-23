@@ -14,7 +14,7 @@ def test_grid_converts_gap_without_changing_document_units():
     grid=source.split("public string Grid(",1)[1].split("public string Resize(",1)[0]
     assert "MmToDocumentUnits(gapMm, s.Unit)" in grid
     assert "gapInDocumentUnits" in grid
-    assert "requireMillimeters: false" in grid
+    assert 'RunEdit("Criar grade"' in grid
     assert "doc.Unit =" not in grid
     assert "Backup" not in grid or "RunEdit" in grid
 

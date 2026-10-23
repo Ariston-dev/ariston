@@ -21,7 +21,7 @@ def test_copy_action_has_backup_and_manual_save_precondition():
 
 
 def test_version_and_diagnostic_button():
-    assert 'v5.1.6' in XAML
+    assert 'v5.1.7' in XAML
     assert 'BtnTestBackup_Click' in XAML and 'BtnTestBackup_Click' in UI
     assembly=(ROOT/'LaserToolsFree.Docker/Properties/AssemblyInfo.cs').read_text(encoding='utf-8')
     assert '5.1.6.0' in assembly

@@ -113,18 +113,18 @@ namespace LaserToolsFree.Docker
         private void Refresh()
         {
             SelectionSnapshot s = Corel.Inspect();
-            string unit = s.Unit == 3 ? "mm" : s.Unit == 4 ? "cm" : "unidade Corel " + s.Unit;
+            double widthMm = Calculations.DocumentUnitsToMm(s.Width, s.Unit);
+            double heightMm = Calculations.DocumentUnitsToMm(s.Height, s.Unit);
+            string originalUnit = s.Unit == 1 ? "polegadas" : s.Unit == 3 ? "mm" :
+                s.Unit == 4 ? "cm" : "codigo " + s.Unit;
             TxtSelection.Text = "Documento: " + s.Name + "\nObjetos: " + s.Count +
-                "\nLargura: " + Calculations.Mm(s.Width) + " " + unit +
-                " | Altura: " + Calculations.Mm(s.Height) + " " + unit +
-                "\nUnidade interna: " + s.Unit + " (3=mm; 4=cm)" +
-                "\nÁrea da caixa envolvente: " + Calculations.Mm(s.Width * s.Height) +
-                " unidades² (NÃO é a área geométrica das peças)";
-            if (s.Unit == 3)
-            {
-                TxtWidth.Text = Calculations.Mm(s.Width);
-                TxtHeight.Text = Calculations.Mm(s.Height);
-            }
+                "\nLargura: " + Calculations.Mm(widthMm) + " mm" +
+                " | Altura: " + Calculations.Mm(heightMm) + " mm" +
+                "\nUnidade interna: " + s.Unit + " (" + originalUnit + ")" +
+                "\nÁrea da caixa envolvente: " + Calculations.Mm(widthMm * heightMm) +
+                " mm² (NÃO é a área geométrica das peças)";
+            TxtWidth.Text = Calculations.Mm(widthMm);
+            TxtHeight.Text = Calculations.Mm(heightMm);
             TxtStatus.Text = "Seleção atualizada. Unidade interna: " + s.Unit + ". Nenhum objeto foi modificado.";
         }
 

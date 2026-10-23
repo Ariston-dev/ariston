@@ -12,7 +12,6 @@ namespace LaserToolsFree.Docker
     internal sealed class CorelService
     {
         private readonly dynamic _app;
-        private const int Millimeter = 3; // cdrMillimeter (CorelDRAW 2022 / 2024)
         public CorelService(object corelApplication)
         {
             if (corelApplication == null) throw new ArgumentNullException("corelApplication");
@@ -39,12 +38,6 @@ namespace LaserToolsFree.Docker
             if (selection == null || (int)selection.Count < 1)
                 throw new InvalidOperationException("Selecione pelo menos um objeto no CorelDRAW.");
             return selection;
-        }
-
-        private void RequireMillimeter(dynamic doc)
-        {
-            if ((int)doc.Unit != Millimeter)
-                throw new InvalidOperationException("Esta ferramenta DXF exige documento em mm. Unidade interna recebida do CorelDRAW: " + (int)doc.Unit + " (3 = mm, 4 = cm). Nenhum objeto foi alterado.");
         }
 
         public SelectionSnapshot Inspect()
@@ -101,11 +94,10 @@ namespace LaserToolsFree.Docker
             return Backup(Document());
         }
 
-        private string RunEdit(string label, Action<dynamic, dynamic> action, bool requireMillimeters = true)
+        private string RunEdit(string label, Action<dynamic, dynamic> action)
         {
             dynamic doc = Document();
             dynamic selection = Selection(doc);
-            if (requireMillimeters) RequireMillimeter(doc);
             string backup = Backup(doc);
             bool groupStarted = false;
             try
@@ -138,7 +130,9 @@ namespace LaserToolsFree.Docker
         {
             dynamic doc = Document();
             Selection(doc);
-            RequireMillimeter(doc);
+            // A unidade do CDR nao precisa ser mm: o filtro DXF recebe sua
+            // propria unidade de exportacao. NUNCA modificar doc.Unit.
+            Calculations.MmToDocumentUnits(1.0, (int)doc.Unit);
             string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                 "LaserToolsFree", "DXF_Exportados");
             Directory.CreateDirectory(folder);
@@ -149,9 +143,19 @@ namespace LaserToolsFree.Docker
             // CorelDRAW: cdrDXF=1296; cdrSelection=2. O ExportFilter exige Finish().
             dynamic exportFilter = doc.ExportEx(filename, 1296, 2);
             if (exportFilter == null) throw new IOException("CorelDRAW não retornou o filtro de exportação DXF.");
-            // A API do filtro DXF usa DxfUnits=3 para milímetros. No host COM,
-            // esta propriedade pode não estar exposta; exigir verificação na etapa Python.
-            try { exportFilter.Units = 3; } catch (Microsoft.CSharp.RuntimeBinder.RuntimeBinderException) { }
+            // DXFExport.Units e independente de Document.Unit.
+            // dxfMillimeters=3 (CorelDRAW 2022). Se nao for possivel aplicar
+            // a unidade, falhar fechado em vez de gerar DXF em polegadas.
+            try
+            {
+                exportFilter.Units = 3;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    "O filtro DXF do CorelDRAW 2022 nao aceitou definir milimetros. " +
+                    "Exportacao cancelada para evitar escala incorreta.", ex);
+            }
             exportFilter.Finish();
             if (!File.Exists(filename) || new FileInfo(filename).Length == 0)
                 throw new IOException("DXF não foi confirmado. Confira se o CorelDRAW exibiu configuração do filtro ou erro.");
@@ -164,7 +168,9 @@ namespace LaserToolsFree.Docker
             if (string.IsNullOrWhiteSpace(dxfPath) || !File.Exists(dxfPath))
                 throw new FileNotFoundException("DXF processado não encontrado.", dxfPath);
             dynamic doc = Document();
-            RequireMillimeter(doc);
+            // Para DXF em mm, a importacao define explicitamente 1 unidade = 1 mm,
+            // independentemente de o CDR estar em polegadas, cm ou mm.
+            Calculations.MmToDocumentUnits(1.0, (int)doc.Unit);
             string backup = Backup(doc);
             string layerName="LTF_" + SafeFileName(operation) + "_" + DateTime.Now.ToString("HHmmssfff");
             bool commandStarted=false;
@@ -175,6 +181,15 @@ namespace LaserToolsFree.Docker
                 dynamic layer=doc.ActivePage.CreateLayer(layerName);
                 dynamic filter=layer.ImportEx(dxfPath, 1296);
                 if (filter==null) throw new InvalidOperationException("CorelDRAW não retornou um filtro de importação.");
+                // DXFImport.Scaling usa DxfScale; dxfMetric = 2 (1 unidade DXF = 1 mm).
+                // Nao adivinhar escala caso o host nao exponha essa propriedade.
+                try { filter.Scaling = 2; }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        "O filtro de importacao DXF nao permitiu fixar escala metrica. " +
+                        "Nenhuma geometria foi importada. Mantenha o DXF gerado e valide-o manualmente.", ex);
+                }
                 filter.Finish();
                 if ((int)layer.Shapes.Count<1)
                     throw new InvalidOperationException("O CorelDRAW não registrou formas na nova camada. Confira o DXF importado.");
@@ -213,7 +228,7 @@ namespace LaserToolsFree.Docker
                             -r * (s.Height + gapInDocumentUnits));
                     }
                 }
-            }, requireMillimeters: false);
+            });
         }
 
         public string Resize(double width, double height)
@@ -223,7 +238,14 @@ namespace LaserToolsFree.Docker
             SelectionSnapshot s = Inspect();
             if (s.Width <= 0 || s.Height <= 0)
                 throw new InvalidOperationException("A seleção não tem dimensões válidas.");
-            return RunEdit("Redimensionar", (doc, selection) => selection.SetSize(width, height));
+            double widthInDoc = Calculations.MmToDocumentUnits(width, s.Unit);
+            double heightInDoc = Calculations.MmToDocumentUnits(height, s.Unit);
+            return RunEdit("Redimensionar", (doc, selection) =>
+            {
+                if ((int)doc.Unit != s.Unit)
+                    throw new InvalidOperationException("A unidade mudou durante o redimensionamento. Operacao cancelada.");
+                selection.SetSize(widthInDoc, heightInDoc);
+            });
         }
 
         public string Rotate90(int degrees)

@@ -58,6 +58,46 @@ namespace LaserToolsFree.Docker
                 File.Delete(gradeBackup);
                 Console.WriteLine("OK: copia do CDR salvo, backup independente, grade 2x3, deslocamentos, undo.");
 
+                // Documento com unidade 1 (polegadas): interface trabalha em mm.
+                document.Unit = 1;
+                document.SelectionRange.Width = 30.0 / 25.4;
+                document.SelectionRange.Height = 20.0 / 25.4;
+                document.SelectionRange.Offsets.Clear();
+                string inchGrade = service.Grid(2, 3, 3.0);
+                Assert(File.Exists(inchGrade), "backup existe para grade em polegadas");
+                Assert(OffsetAt(document, 0, 33.0/25.4, 0), "espaco 3 mm no documento em polegadas");
+                Assert(OffsetAt(document, 2, 0, -23.0/25.4), "deslocamento vertical em polegadas");
+                File.Delete(inchGrade);
+
+                string inchResize = service.Resize(50, 40);
+                Assert(File.Exists(inchResize), "backup redimensionamento em polegadas");
+                Assert(Math.Abs(document.SelectionRange.LastWidth - 50.0/25.4) < 1e-8, "50 mm em polegadas");
+                Assert(Math.Abs(document.SelectionRange.LastHeight - 40.0/25.4) < 1e-8, "40 mm em polegadas");
+                File.Delete(inchResize);
+
+                string inchRotate = service.Rotate90(90);
+                Assert(File.Exists(inchRotate), "backup da rotacao em polegadas");
+                Assert(document.SelectionRange.LastRotate == 90, "rotacao nao precisa exigir mm");
+                File.Delete(inchRotate);
+
+                string inchExport = service.ExportSelectionDxf();
+                Assert(File.Exists(inchExport), "exportar documento em polegadas para DXF mm");
+                Assert(document.LastExportFilter != null && document.LastExportFilter.Units == 3,
+                    "filtro DXF fixado em milimetros");
+                Assert(document.Unit == 1, "exportacao nao altera unidade CDR");
+
+                string inchImport = service.ImportResultAsNewLayer(inchExport, "teste");
+                Assert(File.Exists(inchImport), "backup antes da importacao DXF");
+                Assert(document.ActivePage.LastCreatedLayer.LastFilter.Scaling == 2,
+                    "importacao DXF exige modo metrico no filtro");
+                Assert(document.ActivePage.LastCreatedLayer.Shapes.Count > 0,
+                    "filtro devolve geometrias importadas");
+                Assert(document.Unit == 1, "importacao preserva unidade do CDR");
+                File.Delete(inchImport);
+                File.Delete(inchExport);
+                Assert(BytesEqual(File.ReadAllBytes(original), contents), "CDR original permanece intacto");
+                Console.WriteLine("OK: inch->mm na grade/medidas, rotacao, DXF mm de saida, importacao metrica simulada.");
+
                 document.Dirty = true;
                 int previousCount = document.SelectionRange.Offsets.Count;
                 MustFail(() => service.Grid(2, 3, 3), "Ctrl+S");
@@ -104,6 +144,14 @@ namespace LaserToolsFree.Docker
         public bool Dirty { get; set; }
         public int Unit { get; set; }
         public FakeSelection SelectionRange { get; set; }
+        public FakePage ActivePage { get; } = new FakePage();
+        public FakeExportFilter LastExportFilter { get; private set; }
+        public FakeExportFilter ExportEx(string filename, int format, int exportRange)
+        {
+            if (format != 1296 || exportRange != 2) throw new Exception("ExportEx parametros inesperados");
+            LastExportFilter = new FakeExportFilter(filename);
+            return LastExportFilter;
+        }
         public int BeginCalls, EndCalls;
         public void BeginCommandGroup(string title) { BeginCalls++; }
         public void EndCommandGroup() { EndCalls++; }
@@ -112,13 +160,66 @@ namespace LaserToolsFree.Docker
     public sealed class FakeSelection
     {
         public int Count { get { return 1; } }
-        public double SizeWidth { get { return 30; } }
-        public double SizeHeight { get { return 20; } }
+        public double Width { get; set; } = 30;
+        public double Height { get; set; } = 20;
+        public double SizeWidth { get { return Width; } }
+        public double SizeHeight { get { return Height; } }
+        public double LastWidth, LastHeight;
+        public int LastRotate;
+        public double RotationCenterX, RotationCenterY;
+        public double CenterX { get { return 0; } }
+        public double CenterY { get { return 0; } }
+        public void SetSize(double width, double height) { LastWidth=width; LastHeight=height; }
+        public void Rotate(int degrees) { LastRotate=degrees; }
         public List<Tuple<double,double>> Offsets = new List<Tuple<double,double>>();
         public FakeSelection Duplicate(double offsetX, double offsetY)
         {
             Offsets.Add(Tuple.Create(offsetX, offsetY));
             return this;
+        }
+    }
+
+    public sealed class FakeExportFilter
+    {
+        private readonly string _filename;
+        public int Units { get; set; } = -1;
+        public FakeExportFilter(string filename) { _filename=filename; }
+        public void Finish()
+        {
+            if (Units != 3) throw new InvalidOperationException("Unidades DXF nao fixadas como mm");
+            File.WriteAllText(_filename, "0\nSECTION\n2\nENTITIES\n0\nENDSEC\n0\nEOF\n");
+        }
+    }
+    public sealed class FakePage
+    {
+        public FakeLayer LastCreatedLayer { get; private set; }
+        public FakeLayer CreateLayer(string name)
+        {
+            LastCreatedLayer = new FakeLayer();
+            return LastCreatedLayer;
+        }
+    }
+    public sealed class FakeLayer
+    {
+        public FakeShapes Shapes { get; } = new FakeShapes();
+        public FakeImportFilter LastFilter { get; private set; }
+        public FakeImportFilter ImportEx(string dxfPath, int format)
+        {
+            if (format != 1296 || !File.Exists(dxfPath)) throw new Exception("ImportEx invalido");
+            LastFilter = new FakeImportFilter(Shapes);
+            return LastFilter;
+        }
+    }
+    public sealed class FakeShapes { public int Count { get; set; } }
+    public sealed class FakeImportFilter
+    {
+        private readonly FakeShapes _shapes;
+        public int Scaling { get; set; } = -1;
+        public FakeImportFilter(FakeShapes shapes) { _shapes=shapes; }
+        public void Finish()
+        {
+            if (Scaling != 2) throw new Exception("Importacao sem escala metrica");
+            _shapes.Count = 1;
         }
     }
 }

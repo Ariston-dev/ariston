@@ -112,10 +112,11 @@ namespace LaserToolsFree.Docker
         private void Refresh()
         {
             SelectionSnapshot s = Corel.Inspect();
-            string unit = s.Unit == 3 ? "mm" : "outra unidade (ajuste o documento para mm)";
+            string unit = s.Unit == 3 ? "mm" : s.Unit == 4 ? "cm" : "unidade Corel " + s.Unit;
             TxtSelection.Text = "Documento: " + s.Name + "\nObjetos: " + s.Count +
                 "\nLargura: " + Calculations.Mm(s.Width) + " " + unit +
                 " | Altura: " + Calculations.Mm(s.Height) + " " + unit +
+                "\nUnidade interna: " + s.Unit + " (3=mm; 4=cm)" +
                 "\nÁrea da caixa envolvente: " + Calculations.Mm(s.Width * s.Height) +
                 " unidades² (NÃO é a área geométrica das peças)";
             if (s.Unit == 3)
@@ -123,7 +124,7 @@ namespace LaserToolsFree.Docker
                 TxtWidth.Text = Calculations.Mm(s.Width);
                 TxtHeight.Text = Calculations.Mm(s.Height);
             }
-            TxtStatus.Text = "Seleção atualizada. Nenhum objeto foi modificado.";
+            TxtStatus.Text = "Seleção atualizada. Unidade interna: " + s.Unit + ". Nenhum objeto foi modificado.";
         }
 
         private void BtnRefresh_Click(object sender, RoutedEventArgs e) { Run(Refresh); }
@@ -140,7 +141,7 @@ namespace LaserToolsFree.Docker
                 if (!Confirm("Criar " + (rows * cols - 1) + " cópia(s) da seleção em grade")) return;
                 string path = Corel.Grid(rows, cols, gap);
                 Refresh();
-                TxtStatus.Text = "Cópias criadas. Backup: " + path;
+                TxtStatus.Text = "Grade criada. Espaçamento informado em mm e convertido para a unidade " + s.Unit + ". Backup: " + path;
             });
         }
 

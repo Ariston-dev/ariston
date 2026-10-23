@@ -1,0 +1,32 @@
+LASER TOOLS FREE v5.1.5 - CORRECAO DE UNIDADES (CORELDRAW 2022)
+
+DIAGNOSTICO
+O erro 0x800401E3 no PowerShell e uma falha de acesso a instancia COM;
+nao prova que o documento esta em centimetros, milimetros ou outra unidade.
+
+ALTERACAO
+- Botao "Gerar copias" agora interpreta o campo espacamento SEMPRE em mm,
+  mas converte esse valor para a unidade interna do desenho.
+- Suporta mm (3), cm (4), polegada (1), pe (2), metro (7).
+- Para outras unidades, interrompe ANTES de alterar o CDR.
+- "Atualizar selecao" mostra o numero da unidade interna.
+- As ferramentas DXF continuam exigindo mm para evitar importacao incorreta.
+- Mantem backup CDR e preservacao do original.
+
+COMO ATUALIZAR
+1) Feche CorelDRAW 2022.
+2) Extraia este ZIP e copie a pasta CorelAddon sobre a pasta do seu
+   repositorio GitHub Desktop, substituindo somente os arquivos correspondentes.
+3) Commit to main -> Push origin.
+4) No GitHub Actions, abra a nova execucao. Somente se todos os jobs
+   e o pacote principal estiverem aprovados baixe o novo artifact.
+5) Extraia TOTALMENTE o ZIP e instale para a pasta REAL do CorelDRAW 2022,
+   com o CorelDRAW fechado. Nunca instale diretamente de dentro do ZIP.
+6) Reinicie CorelDRAW 2022. No painel, clique Atualizar selecao e confira
+   "Unidade interna". Use um retangulo de 30 x 20 mm, 2x3, espaco 3 mm.
+7) Confira quantidade de copias, medidas e backups. Nao use producao ainda.
+
+LIMITACOES
+Este patch nao foi compilado neste ambiente Linux ou validado dentro do
+CorelDRAW 2022. O GitHub Actions precisa compilar o C#, e seu teste real
+precisa confirmar o resultado. Nao resolve automaticamente COM externo.

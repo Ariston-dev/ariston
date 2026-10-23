@@ -12,7 +12,7 @@ namespace LaserToolsFree.Docker
     internal sealed class CorelService
     {
         private readonly dynamic _app;
-        private const int Millimeter = 3; // cdrMillimeter (2024)
+        private const int Millimeter = 3; // cdrMillimeter (CorelDRAW 2022 / 2024)
         public CorelService(object corelApplication)
         {
             if (corelApplication == null) throw new ArgumentNullException("corelApplication");
@@ -44,7 +44,7 @@ namespace LaserToolsFree.Docker
         private void RequireMillimeter(dynamic doc)
         {
             if ((int)doc.Unit != Millimeter)
-                throw new InvalidOperationException("Antes de modificar, mude as unidades do DOCUMENTO para milímetros (mm).");
+                throw new InvalidOperationException("Esta ferramenta DXF exige documento em mm. Unidade interna recebida do CorelDRAW: " + (int)doc.Unit + " (3 = mm, 4 = cm). Nenhum objeto foi alterado.");
         }
 
         public SelectionSnapshot Inspect()
@@ -82,11 +82,11 @@ namespace LaserToolsFree.Docker
             return path;
         }
 
-        private string RunEdit(string label, Action<dynamic, dynamic> action)
+        private string RunEdit(string label, Action<dynamic, dynamic> action, bool requireMillimeters = true)
         {
             dynamic doc = Document();
             dynamic selection = Selection(doc);
-            RequireMillimeter(doc);
+            if (requireMillimeters) RequireMillimeter(doc);
             string backup = Backup(doc);
             bool groupStarted = false;
             try
@@ -172,22 +172,29 @@ namespace LaserToolsFree.Docker
             }
         }
 
-        public string Grid(int rows, int columns, double gap)
+        // "gapMm" e sempre expresso em milimetros no painel, independentemente
+        // da unidade do desenho. A API Duplicate utiliza as unidades internas
+        // do documento; converter ANTES de deslocar evita escalas erradas.
+        public string Grid(int rows, int columns, double gapMm)
         {
             SelectionSnapshot s = Inspect();
-            Calculations.CheckGrid(rows, columns, gap, s.Width, s.Height);
+            Calculations.CheckGrid(rows, columns, gapMm, s.Width, s.Height);
+            double gapInDocumentUnits = Calculations.MmToDocumentUnits(gapMm, s.Unit);
             return RunEdit("Criar grade", (doc, selection) =>
             {
+                // Conferir se a unidade nao mudou entre inspecao e modificacao.
+                if ((int)doc.Unit != s.Unit)
+                    throw new InvalidOperationException("A unidade do documento mudou durante a operacao. Nada sera duplicado.");
                 for (int r = 0; r < rows; r++)
                 {
                     for (int c = 0; c < columns; c++)
                     {
                         if (r == 0 && c == 0) continue;
-                        // A cópia sempre sai da seleção original e não das cópias.
-                        selection.Duplicate(c * (s.Width + gap), -r * (s.Height + gap));
+                        selection.Duplicate(c * (s.Width + gapInDocumentUnits),
+                            -r * (s.Height + gapInDocumentUnits));
                     }
                 }
-            });
+            }, requireMillimeters: false);
         }
 
         public string Resize(double width, double height)

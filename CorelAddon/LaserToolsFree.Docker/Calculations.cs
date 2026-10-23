@@ -37,6 +37,25 @@ namespace LaserToolsFree.Docker
                 throw new ArgumentException("A seleção precisa ter largura e altura maiores que zero.");
         }
 
+        // CorelDRAW 2022, enum cdrUnit: 1 inch, 2 foot, 3 mm,
+        // 4 cm, 7 meter. Sem conversao silenciosa para pixels/pontos.
+        public static double MmToDocumentUnits(double millimeters, int cdrUnit)
+        {
+            if (double.IsNaN(millimeters) || double.IsInfinity(millimeters) || millimeters < 0)
+                throw new ArgumentException("Espacamento em mm invalido.");
+            switch (cdrUnit)
+            {
+                case 1: return millimeters / 25.4;    // polegadas
+                case 2: return millimeters / 304.8;   // pes
+                case 3: return millimeters;           // mm
+                case 4: return millimeters / 10.0;    // cm
+                case 7: return millimeters / 1000.0;  // metros
+                default:
+                    throw new InvalidOperationException("Unidade do documento nao suportada para duplicacao segura: "
+                        + cdrUnit + ". Use mm ou cm no documento. Nenhum objeto foi modificado.");
+            }
+        }
+
         public static double ProportionalHeight(double currentW, double currentH, double newW)
         {
             if (currentW <= 0 || currentH <= 0 || newW <= 0) throw new ArgumentException("Medidas inválidas.");

@@ -31,7 +31,7 @@ def test_dll_hosted_type_and_csproj():
 
 def test_corel_import_protects_original_objects():
     service=(ROOT/'CorelService.cs').read_text(encoding='utf-8')
-    assert 'SaveAsCopy' in service
+    assert 'SavedCdrBackup.Copy' in service
     assert 'CreateLayer' in service
     assert 'layer.ImportEx' in service
     assert 'layer.Shapes.Count' in service

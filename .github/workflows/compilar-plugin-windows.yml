@@ -57,6 +57,13 @@ jobs:
         run: |
           powershell.exe -NoProfile -Sta -ExecutionPolicy Bypass -File CorelAddon/tools/Testar-Painel-WPF.ps1 -AssemblyPath 'CorelAddon/LaserToolsFree.Docker/bin/Release/LaserToolsFree.Docker.dll'
           if ($LASTEXITCODE -ne 0) { throw 'A interface WPF compilou, mas nao abriu no teste de inicializacao.' }
+      - name: Teste C# real do backup e grade com documento simulado
+        shell: pwsh
+        run: |
+          msbuild CorelAddon/tests/BackupSmoke/BackupSmoke.csproj /t:Rebuild /p:Configuration=Release /p:Platform=x64 /v:minimal /nologo
+          if ($LASTEXITCODE -ne 0) { throw 'Teste C# nao compilou.' }
+          & 'CorelAddon/tests/BackupSmoke/bin/Release/BackupSmoke.exe'
+          if ($LASTEXITCODE -ne 0) { throw 'Backup/grade C# falhou com objeto Corel simulado.' }
       - uses: actions/upload-artifact@v4
         with:
           name: ltf-painel-dll

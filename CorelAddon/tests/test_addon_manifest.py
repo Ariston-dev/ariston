@@ -49,7 +49,8 @@ class DockerManifestTests(unittest.TestCase):
     def test_backup_before_edit_and_no_automatic_save(self):
         code = (BASE / 'CorelService.cs').read_text(encoding='utf-8')
         self.assertLess(code.index('string backup = Backup(doc)'), code.index('doc.BeginCommandGroup'))
-        self.assertIn('doc.SaveAsCopy(path)', code)
+        self.assertIn('SavedCdrBackup.Copy', code)
+        self.assertNotIn('doc.SaveAsCopy(path)', code)
         self.assertNotIn('doc.Save();', code)
         self.assertIn('exportFilter.Finish()', code)
         self.assertIn('doc.ExportEx(filename, 1296, 2)', code)

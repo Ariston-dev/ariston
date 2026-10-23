@@ -103,7 +103,8 @@ namespace LaserToolsFree.Docker
         private bool Confirm(string action)
         {
             return MessageBox.Show(
-                action + "\n\nUma cópia .CDR será criada automaticamente em Documentos\\LaserToolsFree\\Backups " +
+                action + "\n\nPara manter seu original seguro, o documento deve estar salvo como CDR (Ctrl+S) e sem edições pendentes. " +
+                "O plugin criará uma cópia em Documentos\\LaserToolsFree\\Backups " +
                 "ANTES da alteração. O original será mantido, e o documento aberto não será salvo automaticamente.\n\n" +
                 "Use somente arquivos de teste nesta versão. Continuar?",
                 "Confirmar operação", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
@@ -335,6 +336,17 @@ namespace LaserToolsFree.Docker
         private async void BtnRDWorks_Click(object sender, RoutedEventArgs e)
         {
             await ProcessSelection("rdworks",new Dictionary<string,string>(),false);
+        }
+
+        private void BtnTestBackup_Click(object sender, RoutedEventArgs e)
+        {
+            Run(() =>
+            {
+                string path = Corel.TestBackup();
+                TxtStatus.Text = "Backup confirmado, desenho nao alterado: " + path;
+                MessageBox.Show("Backup criado sem alterar o CDR:\n" + path,
+                    "Laser Tools Free - teste de backup", MessageBoxButton.OK, MessageBoxImage.Information);
+            });
         }
 
         private void BtnOpenBackups_Click(object sender, RoutedEventArgs e)

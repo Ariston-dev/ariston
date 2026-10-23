@@ -26,7 +26,7 @@
     <Border Grid.Row="0" Background="#20374E" Padding="13,13,13,11">
       <StackPanel>
         <TextBlock Text="LASER TOOLS FREE" FontSize="16" FontWeight="Bold" Foreground="White" />
-        <TextBlock Text="CorelDRAW 2022 · integração experimental v5.1.5" FontSize="11" Foreground="#E5EDF4" />
+        <TextBlock Text="CorelDRAW 2022 · integração experimental v5.1.6" FontSize="11" Foreground="#E5EDF4" />
       </StackPanel>
     </Border>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -122,7 +122,8 @@
         <Border Background="#FFF7E8" Margin="0,11,0,0" BorderBrush="#DFCB9A" BorderThickness="1" Padding="8">
           <StackPanel>
             <TextBlock Text="Proteção dos arquivos" FontWeight="Bold" />
-            <TextBlock FontSize="11" Text="Antes de cada alteração, o painel cria uma cópia CDR em Documentos\LaserToolsFree\Backups. Não salva o documento modificado automaticamente. Ctrl+Z desfaz as operações." />
+            <TextBlock FontSize="11" Text="Antes de modificar: salve o documento como .CDR (Ctrl+S), sem alterações pendentes. O painel copiará o CDR salvo para Documentos\LaserToolsFree\Backups. Não salva automaticamente. Ctrl+Z desfaz." />
+            <Button Content="Testar backup (sem modificar desenho)" Click="BtnTestBackup_Click" />
             <Button Content="Abrir pasta de backups" Click="BtnOpenBackups_Click" />
           </StackPanel>
         </Border>

@@ -65,21 +65,40 @@ namespace LaserToolsFree.Docker
             return string.IsNullOrWhiteSpace(clean) ? "Desenho" : clean;
         }
 
+        /// <summary>
+        /// Cria backup do arquivo CDR que esta no disco. Nunca invoca SaveAsCopy:
+        /// o host de 2022 rejeitou a chamada dinamica com erro de conversao de argumento.
+        /// Para preservar integralmente o trabalho, a operacao so prossegue se o
+        /// arquivo estiver salvo, em .CDR e SEM alteracoes pendentes na memoria.
+        /// </summary>
         private string Backup(dynamic doc)
         {
-            string backups = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "LaserToolsFree", "Backups");
-            Directory.CreateDirectory(backups);
-            string originalName = Convert.ToString(doc.Name);
-            string stem = SafeFileName(Path.GetFileNameWithoutExtension(originalName));
-            string path = Path.Combine(backups, stem + "_antes_" + DateTime.Now.ToString("yyyyMMdd_HHmmss_fffffff") + "_" + Guid.NewGuid().ToString("N").Substring(0, 8) + ".cdr");
-            // Não salvar o arquivo aberto. Nunca sobrescrever o backup anterior.
-            doc.SaveAsCopy(path);
-            if (!File.Exists(path) || new FileInfo(path).Length == 0)
-                throw new IOException("O backup do CorelDRAW não foi confirmado. Operação cancelada.");
-            // Defesa adicional caso CorelDRAW se comporte inesperadamente com SaveAsCopy.
-            if (!string.Equals(Convert.ToString(doc.Name), originalName, StringComparison.OrdinalIgnoreCase))
-                throw new IOException("O CorelDRAW mudou o nome do arquivo ativo durante o backup; operação cancelada.");
-            return path;
+            // API oficial CorelDRAW 2022: FileName, FilePath e Dirty.
+            // Se o host nao fornecer qualquer uma delas, a falha e segura.
+            string fileName;
+            string filePath;
+            bool dirty;
+            try
+            {
+                fileName = Convert.ToString(doc.FileName);
+                filePath = Convert.ToString(doc.FilePath);
+                dirty = Convert.ToBoolean(doc.Dirty);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    "Nao foi possivel verificar se o CDR esta salvo. Operacao cancelada sem modificar o desenho.", ex);
+            }
+            string backups = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "LaserToolsFree", "Backups");
+            return SavedCdrBackup.Copy(fileName, filePath, dirty, backups);
+        }
+
+        // Botao de teste sem operacao geometrica, para separar problemas de backup
+        // de problemas da API de duplicacao/rotacao/importacao.
+        public string TestBackup()
+        {
+            return Backup(Document());
         }
 
         private string RunEdit(string label, Action<dynamic, dynamic> action, bool requireMillimeters = true)
@@ -218,6 +237,64 @@ namespace LaserToolsFree.Docker
                 selection.RotationCenterY = Convert.ToDouble(selection.CenterY);
                 selection.Rotate(degrees);
             });
+        }
+    }
+
+    /// <summary>
+    /// Copia apenas um CDR previamente salvo. Nenhuma chamada COM de salvamento e
+    /// necessaria, portanto o documento aberto nao e alterado nem salvo automaticamente.
+    /// Esta verificacao e executavel com arquivos reais por testes Windows.
+    /// </summary>
+    internal static class SavedCdrBackup
+    {
+        public static string Copy(string fileName, string filePath, bool dirty, string backupDirectory)
+        {
+            if (dirty)
+                throw new InvalidOperationException(
+                    "Existem alteracoes nao salvas no documento. Use Ctrl+S para salvar seu CDR " +
+                    "antes de usar Laser Tools Free. Nenhum objeto foi alterado.");
+
+            if (string.IsNullOrWhiteSpace(fileName))
+                throw new InvalidOperationException(
+                    "Documento ainda nao foi salvo. Use Arquivo > Salvar como, escolha CDR " +
+                    "e tente novamente. Nenhum objeto foi alterado.");
+
+            string original = Path.IsPathRooted(fileName) ? fileName :
+                Path.Combine(filePath ?? string.Empty, fileName);
+            original = Path.GetFullPath(original);
+            if (!string.Equals(Path.GetExtension(original), ".cdr", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    "Para fazer backup seguro, salve o documento em formato .CDR primeiro. " +
+                    "Nenhum objeto foi alterado.");
+            if (!File.Exists(original))
+                throw new InvalidOperationException(
+                    "O arquivo CDR salvo nao foi encontrado: " + original +
+                    ". Salve o documento novamente antes de usar o plugin.");
+
+            Directory.CreateDirectory(backupDirectory);
+            string name = Path.GetFileNameWithoutExtension(original);
+            string stem = new string(name.Where(c => char.IsLetterOrDigit(c) || c == '-' || c == '_')
+                .Take(65).ToArray());
+            if (string.IsNullOrWhiteSpace(stem)) stem = "Desenho";
+            string destination = Path.Combine(backupDirectory,
+                stem + "_antes_" + DateTime.Now.ToString("yyyyMMdd_HHmmss_fffffff") + "_" +
+                Guid.NewGuid().ToString("N").Substring(0, 8) + ".cdr");
+            try
+            {
+                File.Copy(original, destination, false);
+                FileInfo sourceInfo = new FileInfo(original);
+                FileInfo backupInfo = new FileInfo(destination);
+                if (sourceInfo.Length == 0 || backupInfo.Length != sourceInfo.Length)
+                    throw new IOException("Tamanho do backup diferente do CDR original.");
+            }
+            catch (Exception ex)
+            {
+                try { if (File.Exists(destination)) File.Delete(destination); } catch { }
+                throw new IOException(
+                    "Nao foi possivel criar backup do CDR salvo. O plugin cancelou a operacao. " +
+                    "Verifique permissao de leitura do arquivo e espaco livre. Detalhes: " + ex.Message, ex);
+            }
+            return destination;
         }
     }
 
